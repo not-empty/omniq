@@ -1,0 +1,17 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Basic sanity (Lua presence)
+        run: |
+          test -f scripts/enqueue.lua
+          test -f docs/omni-contract.md
+          echo "OK"
