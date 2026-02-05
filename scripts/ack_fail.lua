@@ -1,19 +1,21 @@
--- ACK_FAIL (hybrid; failed kept forever; token-gated)
--- ARGV:
--- 1 base
--- 2 job_id
--- 3 now_ms
--- 4 lease_token
--- 5 error (optional; stored as last_error)
-
-local base        = ARGV[1]
-local job_id      = ARGV[2]
-local now_ms      = tonumber(ARGV[3] or "0")
-local lease_token = ARGV[4]
-local err_msg     = ARGV[5]  -- optional
+local anchor      = KEYS[1]
+local job_id      = ARGV[1]
+local now_ms      = tonumber(ARGV[2] or "0")
+local lease_token = ARGV[3]
+local err_msg     = ARGV[4]
 
 local DEFAULT_GROUP_LIMIT = 1
-local MAX_ERR_BYTES = 4096   -- bound the stored error size
+local MAX_ERR_BYTES = 4096
+
+local function derive_base(a)
+  if a == nil or a == "" then return "" end
+  if string.sub(a, -5) == ":meta" then
+    return string.sub(a, 1, -6)
+  end
+  return a
+end
+
+local base = derive_base(anchor)
 
 local k_job     = base .. ":job:" .. job_id
 local k_active  = base .. ":active"
@@ -44,10 +46,8 @@ local function group_limit_for(gid)
   return lim
 end
 
--- NEW: bounded last_error write (optional)
 local function maybe_store_last_error()
   if err_msg == nil or err_msg == "" then return end
-  -- best-effort truncate
   if string.len(err_msg) > MAX_ERR_BYTES then
     err_msg = string.sub(err_msg, 1, MAX_ERR_BYTES)
   end
@@ -57,26 +57,21 @@ local function maybe_store_last_error()
   )
 end
 
--- token required
 if lease_token == nil or lease_token == "" then
   return {"ERR", "TOKEN_REQUIRED"}
 end
 
--- token must match the current owner attempt
 local cur_token = redis.call("HGET", k_job, "lease_token") or ""
 if cur_token ~= lease_token then
   return {"ERR", "TOKEN_MISMATCH"}
 end
 
--- must still be active (prevents double-ACK and stale workers after reaper/retry)
 if redis.call("ZREM", k_active, job_id) ~= 1 then
   return {"ERR", "NOT_ACTIVE"}
 end
 
--- NEW: store error after we confirm active+token (so stale workers can't write errors)
 maybe_store_last_error()
 
--- group bookkeeping (if job is grouped)
 local gid = redis.call("HGET", k_job, "gid")
 if gid and gid ~= "" then
   local k_ginflight = base .. ":g:" .. gid .. ":inflight"
@@ -93,7 +88,6 @@ local max_attempts = to_i(redis.call("HGET", k_job, "max_attempts"))
 if max_attempts <= 0 then max_attempts = 1 end
 local backoff_ms   = to_i(redis.call("HGET", k_job, "backoff_ms"))
 
--- terminal failure => move to failed history (kept forever)
 if attempt >= max_attempts then
   redis.call("HSET", k_job,
     "state", "failed",
@@ -105,7 +99,6 @@ if attempt >= max_attempts then
   return {"FAILED"}
 end
 
--- retry path
 local due_ms = now_ms + backoff_ms
 redis.call("HSET", k_job,
   "state", "delayed",

@@ -1,22 +1,20 @@
--- RESERVE (hybrid: grouped + ungrouped with starvation-free fairness)
---
--- Returns:
---   ["EMPTY"]
--- or
---   ["JOB", job_id, payload, lock_until_ms, attempt, gid, lease_token]
---
--- ARGV:
--- 1 base
--- 2 now_ms
+local anchor = KEYS[1]
+local now_ms = tonumber(ARGV[1] or "0")
 
-local base = ARGV[1]
+local function derive_base(a)
+  if a == nil or a == "" then return "" end
+  if string.sub(a, -5) == ":meta" then
+    return string.sub(a, 1, -6)
+  end
+  return a
+end
+
+local base = derive_base(anchor)
+
 local k_paused = base .. ":paused"
-
 if redis.call("EXISTS", k_paused) == 1 then
   return {"PAUSED"}
 end
-
-local now_ms = tonumber(ARGV[2] or "0")
 
 local DEFAULT_GROUP_LIMIT = 1
 local MAX_GROUP_POPS = 10
@@ -26,7 +24,6 @@ local k_active   = base .. ":active"
 local k_gready   = base .. ":groups:ready"
 local k_rr       = base .. ":lane:rr"
 
--- sequence key used to generate lease tokens
 local k_token_seq = base .. ":lease:seq"
 
 local function to_i(v)
@@ -38,7 +35,7 @@ end
 
 local function new_lease_token(job_id)
   local seq = redis.call("INCR", k_token_seq)
-  return redis.sha1hex(job_id .. ":" .. tostring(now_ms) .. ":" .. tostring(seq))
+  return server.sha1hex(job_id .. ":" .. tostring(now_ms) .. ":" .. tostring(seq))
 end
 
 local function lease_job(job_id)
@@ -53,7 +50,6 @@ local function lease_job(job_id)
   local payload = redis.call("HGET", k_job, "payload") or ""
   local gid = redis.call("HGET", k_job, "gid") or ""
 
-  -- NEW: token per attempt
   local lease_token = new_lease_token(job_id)
 
   redis.call("HSET", k_job,
@@ -93,7 +89,6 @@ local function try_grouped()
 
     local gid = popped[1]
     if not gid or gid == "" then
-      -- invalid gid; skip
     else
       local k_gwait     = base .. ":g:" .. gid .. ":wait"
       local k_ginflight = base .. ":g:" .. gid .. ":inflight"
@@ -102,12 +97,10 @@ local function try_grouped()
       local limit = group_limit_for(gid)
 
       if inflight >= limit then
-        -- popped gid but no capacity: re-add with tiny delay to reduce churn
         redis.call("ZADD", k_gready, now_ms + 1, gid)
       else
         local job_id = redis.call("LPOP", k_gwait)
         if not job_id then
-          -- group empty; skip (enqueue.lua will re-add gid when new jobs arrive)
         else
           inflight = to_i(redis.call("INCR", k_ginflight))
 
@@ -139,7 +132,6 @@ if not res then
   return {"EMPTY"}
 end
 
--- flip rr for starvation-free fairness
 if rr == 0 then
   redis.call("SET", k_rr, "1")
 else

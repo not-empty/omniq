@@ -1,14 +1,18 @@
--- REAP_EXPIRED (stalled recovery)
--- ARGV:
--- 1 base
--- 2 now_ms
--- 3 max_reap
-
-local base = ARGV[1]
-local now_ms = tonumber(ARGV[2] or "0")
-local max_reap = tonumber(ARGV[3] or "1000")
+local anchor   = KEYS[1]
+local now_ms   = tonumber(ARGV[1] or "0")
+local max_reap = tonumber(ARGV[2] or "1000")
 
 local DEFAULT_GROUP_LIMIT = 1
+
+local function derive_base(a)
+  if a == nil or a == "" then return "" end
+  if string.sub(a, -5) == ":meta" then
+    return string.sub(a, 1, -6)
+  end
+  return a
+end
+
+local base = derive_base(anchor)
 
 local k_active  = base .. ":active"
 local k_delayed = base .. ":delayed"
@@ -44,22 +48,17 @@ local reaped = 0
 for i=1,#ids do
   local job_id = ids[i]
 
-  -- re-check current score in case lease was extended after scan
   local score = redis.call("ZSCORE", k_active, job_id)
   if score and tonumber(score) and tonumber(score) > now_ms then
-    -- still leased; skip
   else
     if redis.call("ZREM", k_active, job_id) == 1 then
       local k_job = base .. ":job:" .. job_id
 
-      -- if job hash missing, nothing else to do
       if redis.call("EXISTS", k_job) == 0 then
         reaped = reaped + 1
       else
-        -- IMPORTANT: invalidate attempt ownership
         redis.call("HSET", k_job, "lease_token", "")
 
-        -- group bookkeeping (if grouped)
         local gid = redis.call("HGET", k_job, "gid")
         if gid and gid ~= "" then
           local k_ginflight = base .. ":g:" .. gid .. ":inflight"
