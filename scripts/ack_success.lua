@@ -1,23 +1,25 @@
--- ACK_SUCCESS (hybrid + retention + token-gated)
--- ARGV:
--- 1 base
--- 2 job_id
--- 3 now_ms
--- 4 lease_token
-
-local base        = ARGV[1]
-local job_id      = ARGV[2]
-local now_ms      = tonumber(ARGV[3] or "0")
-local lease_token = ARGV[4]
+local anchor      = KEYS[1]
+local job_id      = ARGV[1]
+local now_ms      = tonumber(ARGV[2] or "0")
+local lease_token = ARGV[3]
 
 local DEFAULT_GROUP_LIMIT = 1
+local KEEP_COMPLETED = 100
+
+local function derive_base(a)
+  if a == nil or a == "" then return "" end
+  if string.sub(a, -5) == ":meta" then
+    return string.sub(a, 1, -6)
+  end
+  return a
+end
+
+local base = derive_base(anchor)
 
 local k_job       = base .. ":job:" .. job_id
 local k_active    = base .. ":active"
 local k_completed = base .. ":completed"
 local k_gready    = base .. ":groups:ready"
-
-local KEEP_COMPLETED = 100
 
 local function to_i(v)
   if v == false or v == nil or v == '' then return 0 end
@@ -42,23 +44,19 @@ local function group_limit_for(gid)
   return lim
 end
 
--- token required
 if lease_token == nil or lease_token == "" then
   return {"ERR", "TOKEN_REQUIRED"}
 end
 
--- token must match the current owner attempt
 local cur_token = redis.call("HGET", k_job, "lease_token") or ""
 if cur_token ~= lease_token then
   return {"ERR", "TOKEN_MISMATCH"}
 end
 
--- must still be active (prevents double-ACK and stale workers after reaper/retry)
 if redis.call("ZREM", k_active, job_id) ~= 1 then
   return {"ERR", "NOT_ACTIVE"}
 end
 
--- mark completed + clear token
 redis.call("HSET", k_job,
   "state", "completed",
   "updated_ms", tostring(now_ms),
@@ -66,7 +64,6 @@ redis.call("HSET", k_job,
   "lock_until_ms", ""
 )
 
--- group bookkeeping (if job is grouped)
 local gid = redis.call("HGET", k_job, "gid")
 if gid and gid ~= "" then
   local k_ginflight = base .. ":g:" .. gid .. ":inflight"
@@ -78,7 +75,6 @@ if gid and gid ~= "" then
   end
 end
 
--- retention list (trim completed list + delete overflow job hashes)
 redis.call("LPUSH", k_completed, job_id)
 while redis.call("LLEN", k_completed) > KEEP_COMPLETED do
   local old_id = redis.call("RPOP", k_completed)
