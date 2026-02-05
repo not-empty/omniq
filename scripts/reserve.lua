@@ -35,7 +35,7 @@ end
 
 local function new_lease_token(job_id)
   local seq = redis.call("INCR", k_token_seq)
-  return server.sha1hex(job_id .. ":" .. tostring(now_ms) .. ":" .. tostring(seq))
+  return redis.sha1hex(job_id .. ":" .. tostring(now_ms) .. ":" .. tostring(seq))
 end
 
 local function lease_job(job_id)
