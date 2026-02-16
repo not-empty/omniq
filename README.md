@@ -18,4 +18,4 @@ This repo is the **source of truth** for:
 
 Release tags follow SemVer, e.g. `v1.0.0`.
 
-**SDK repos must pin a tag** of this repo (recommended: Git submodule).
+**SDK repos must copy the lua scripts** of this repo
