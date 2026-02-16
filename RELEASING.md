@@ -15,17 +15,4 @@ git push origin v1.0.0
 
 ## What SDKs should do
 
-SDK repositories should pin `scripts/` via **submodule** to a tag of this repo.
-
-Example (inside an SDK repo):
-
-```bash
-git submodule add https://github.com/<ORG>/omniq-core.git scripts
-cd scripts
-git checkout v1.0.0
-cd ..
-git add .gitmodules scripts
-git commit -m "Pin omniq-core scripts to v1.0.0"
-```
-
-When you release `v1.0.1`, SDKs can choose when to bump.
+SDK repositories should copy `scripts/` into lua script folders
