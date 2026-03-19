@@ -1,4 +1,4 @@
-# OmniQ Core (Redis + Lua) — v1
+# OmniQ Core (Redis + Lua)
 
 OmniQ is a **language-agnostic queue core** implemented in **Redis + Lua**.
 Language SDKs embed these Lua scripts and must follow the contract.
