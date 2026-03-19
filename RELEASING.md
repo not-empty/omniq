@@ -1,6 +1,6 @@
 # Release process (Core)
 
-This repo is the authoritative source for OmniQ v1 behavior.
+This repo is the authoritative source for OmniQ behavior.
 
 ## Tagging
 
