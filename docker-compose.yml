@@ -1,0 +1,84 @@
+services:
+  omniq-redis:
+    image: redis:7.4-alpine
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  omniq-python:
+    image: python:3.12-slim
+    working_dir: /workspace/omniq-python
+    environment:
+      PYTHONUNBUFFERED: "1"
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+    volumes:
+      - ./:/workspace/omniq
+      - ../omniq-python:/workspace/omniq-python
+    depends_on:
+      omniq-redis:
+        condition: service_healthy
+    command:
+      [
+        "sh",
+        "-lc",
+        "pip install --no-cache-dir -e /workspace/omniq-python && tail -f /dev/null"
+      ]
+    tty: true
+    stdin_open: true
+
+  omniq-node:
+    image: node:22-alpine
+    working_dir: /workspace/omniq-node
+    environment:
+      NODE_ENV: development
+      npm_config_update_notifier: "false"
+    volumes:
+      - ./:/workspace/omniq
+      - ../omniq-node:/workspace/omniq-node
+      - omniq_node_modules:/workspace/omniq-node/node_modules
+      - npm_cache:/root/.npm
+    depends_on:
+      omniq-redis:
+        condition: service_healthy
+    command:
+      [
+        "sh",
+        "-lc",
+        "npm install && tail -f /dev/null"
+      ]
+    tty: true
+    stdin_open: true
+
+  omniq-go:
+    image: alpine:3.21
+    working_dir: /workspace/omniq-go
+    volumes:
+      - ./:/workspace/omniq
+      - ../omniq-go:/workspace/omniq-go
+      - go_mod_cache:/go/pkg/mod
+      - go_build_cache:/root/.cache/go-build
+    depends_on:
+      omniq-redis:
+        condition: service_healthy
+    command:
+      [
+        "sh",
+        "-lc",
+        "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; export GOTOOLCHAIN=auto; apk add --no-cache go git && go mod download && tail -f /dev/null"
+      ]
+    tty: true
+    stdin_open: true
+
+volumes:
+  redis_data:
+  omniq_node_modules:
+  npm_cache:
+  go_mod_cache:
+  go_build_cache:
