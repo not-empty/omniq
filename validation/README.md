@@ -74,6 +74,19 @@ Each scenario has its own folder:
 - `scenario-13-monitor-groups`
 - `scenario-14-monitor-lanes`
 - `scenario-15-error-surface`
+- `scenario-16-grouped-ack-success`
+- `scenario-17-grouped-ack-fail`
+- `scenario-18-grouped-reap-expired`
+- `scenario-19-grouped-promote-delayed`
+- `scenario-20-batch-retry-errors`
+- `scenario-21-batch-remove-errors`
+- `scenario-22-lane-pagination`
+- `scenario-23-group-pagination`
+- `scenario-24-queue-registry-sparse`
+- `scenario-25-noscript-recovery`
+- `scenario-26-consume-drain-true`
+- `scenario-27-consume-drain-false`
+- `scenario-28-consume-max-attempts`
 
 Each scenario folder should eventually contain:
 

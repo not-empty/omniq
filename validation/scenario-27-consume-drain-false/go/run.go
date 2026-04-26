@@ -77,7 +77,7 @@ func parentMain() {
 	mustPublish(client, omniq.PublishOpts{Queue: queue, JobID: secondJob, Payload: map[string]any{"kind": "drain-false", "slot": 2}, NowMsOverride: baseNowMs + 2})
 
 	binaryPath := filepath.Join(os.TempDir(), "omniq-s27-go-child")
-	buildCmd := exec.Command("/usr/bin/go", "build", "-o", binaryPath, ".")
+	buildCmd := exec.Command("/usr/bin/go", "build", "-buildvcs=false", "-o", binaryPath, ".")
 	buildCmd.Dir = "."
 	buildCmd.Stdout = os.Stdout
 	buildCmd.Stderr = os.Stderr

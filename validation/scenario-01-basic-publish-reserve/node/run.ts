@@ -53,6 +53,7 @@ async function main() {
                   job_id: (reserve as any).job_id ?? null,
                   payload: (reserve as any).payload ?? null,
                   attempt: (reserve as any).attempt ?? null,
+                  max_attempts: (reserve as any).max_attempts ?? null,
                   gid: (reserve as any).gid ?? null,
                   lease_token_present: Boolean((reserve as any).lease_token ?? ""),
                 },

@@ -77,6 +77,7 @@ Validate:
 - reserve returns `lease_token`
 - returned payload matches original JSON
 - attempt starts correctly
+- reserve returns `max_attempts`
 
 Check:
 
@@ -92,6 +93,7 @@ Expected:
 - publish creates job hash and queue registration
 - reserve moves job from wait to active
 - `lease_token` is present in response and job hash
+- `max_attempts` is present in response and matches the job hash
 - `active` and `waiting_total` counters are updated consistently
 
 ---
@@ -408,6 +410,25 @@ Expected:
 
 ---
 
+## Scenario 28: Consume Context Max Attempts
+
+Validate:
+
+- consume handlers receive `attempt`
+- consume handlers receive `max_attempts`
+- `max_attempts` matches the published job configuration
+- retry attempts progress as expected until terminal success
+- handler logic can detect the last attempt using `attempt >= max_attempts`
+
+Expected:
+
+- observed attempts progress `1`, `2`, `3` for a job published with `max_attempts = 3`
+- observed `max_attempts` remains `3` on every handler call
+- last-attempt detection is `false`, `false`, then `true`
+- final job state is `completed`
+
+---
+
 ## Sign-Off Criteria
 
 The branch is ready only when:
@@ -432,4 +453,3 @@ Result:
 Redis check:
 Notes:
 ```
-

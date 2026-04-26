@@ -13,6 +13,7 @@ type reserveView struct {
 	JobID             string `json:"job_id"`
 	Payload           string `json:"payload"`
 	Attempt           int    `json:"attempt"`
+	MaxAttempts       int    `json:"max_attempts"`
 	GID               string `json:"gid"`
 	LeaseTokenPresent bool   `json:"lease_token_present"`
 }
@@ -81,6 +82,7 @@ func main() {
 			JobID:             job.JobID,
 			Payload:           job.Payload,
 			Attempt:           job.Attempt,
+			MaxAttempts:       job.MaxAttempts,
 			GID:               job.GID,
 			LeaseTokenPresent: job.LeaseToken != "",
 		}

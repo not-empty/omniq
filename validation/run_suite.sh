@@ -35,6 +35,7 @@ ALL_SCENARIOS=(
   "scenario-25-noscript-recovery"
   "scenario-26-consume-drain-true"
   "scenario-27-consume-drain-false"
+  "scenario-28-consume-max-attempts"
 )
 
 pad_num() {

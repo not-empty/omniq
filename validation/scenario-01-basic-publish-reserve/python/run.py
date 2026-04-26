@@ -47,6 +47,7 @@ def main() -> int:
                 "job_id": getattr(reserve, "job_id", None),
                 "payload": getattr(reserve, "payload", None),
                 "attempt": getattr(reserve, "attempt", None),
+                "max_attempts": getattr(reserve, "max_attempts", None),
                 "gid": getattr(reserve, "gid", None),
                 "lease_token_present": bool(getattr(reserve, "lease_token", "")),
             },
