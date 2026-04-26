@@ -20,6 +20,7 @@ This is the smallest full-path scenario and should be considered the baseline fo
 - reserve returns `JOB`
 - reserve returns `lease_token`
 - attempt increments correctly
+- reserve returns `max_attempts`
 - active lane and indexes are updated
 - stats reflect the transition from wait to active
 
@@ -54,6 +55,7 @@ This is the smallest full-path scenario and should be considered the baseline fo
   - same `job_id`
   - same payload string
   - `attempt = 1`
+  - `max_attempts = 3`
   - non-empty `lease_token`
 - job hash state becomes `active`
 - wait lane no longer contains the job
@@ -72,6 +74,7 @@ Each runner validates:
 - invalid scalar publish is rejected
 - structured publish succeeds
 - reserve returns the same job with a lease token
+- reserve returns `max_attempts` matching the published value
 
 ## Suggested Commands
 

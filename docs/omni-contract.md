@@ -101,7 +101,7 @@ reserve(queue, now_ms_override=0) -> ReserveResult
 Return union:
 - `null` → no job available
 - `{ status: "PAUSED" }` → queue paused
-- `{ status: "JOB", job_id, payload, lock_until_ms, attempt, gid, lease_token }`
+- `{ status: "JOB", job_id, payload, lock_until_ms, attempt, max_attempts, gid, lease_token }`
 
 Rules:
 - `RESERVE` MUST return `PAUSED` when paused
@@ -192,6 +192,7 @@ Handlers receive:
 - `payload_raw` (JSON string)
 - `payload` (parsed JSON object / array)
 - `attempt` (int)
+- `max_attempts` (int)
 - `lock_until_ms` (int)
 - `lease_token` (string)
 - `gid` (string)
