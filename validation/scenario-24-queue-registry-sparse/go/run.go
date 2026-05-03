@@ -11,12 +11,12 @@ import (
 )
 
 type resultView struct {
-	SDK         string             `json:"sdk"`
-	QueuesFound []string           `json:"queues_found"`
-	StatsEmpty  omniq.QueueStats   `json:"stats_empty"`
-	StatsPartial omniq.QueueStats  `json:"stats_partial"`
-	StatsPaused omniq.QueueStats   `json:"stats_paused"`
-	StatsMany   []omniq.QueueStats `json:"stats_many"`
+	SDK          string             `json:"sdk"`
+	QueuesFound  []string           `json:"queues_found"`
+	StatsEmpty   omniq.QueueStats   `json:"stats_empty"`
+	StatsPartial omniq.QueueStats   `json:"stats_partial"`
+	StatsPaused  omniq.QueueStats   `json:"stats_paused"`
+	StatsMany    []omniq.QueueStats `json:"stats_many"`
 }
 
 func main() {
@@ -25,7 +25,7 @@ func main() {
 	queuePartial := prefix + "-partial"
 	queuePaused := prefix + "-paused"
 
-	client, err := omniq.NewClient(omniq.ClientOpts{Host: "omniq-redis", Port: 6379})
+	client, err := omniq.NewClient(omniq.ClientOpts{Host: getenv("REDIS_HOST", "omniq-redis"), Port: 6379})
 	if err != nil {
 		fail(err)
 	}
@@ -35,10 +35,10 @@ func main() {
 	}
 
 	ctx := context.Background()
-	seed := redis.NewClient(&redis.Options{Addr: "omniq-redis:6379"})
+	seed := newRawRedis()
 	defer func() { _ = seed.Close() }()
 
-	if err := seed.SAdd(ctx, "omniq:queues", "{"+queueEmpty+"}", "{"+queuePartial+"}", "{"+queuePaused+"}").Err(); err != nil {
+	if err := seed.HSet(ctx, "{"+queueEmpty+"}:stats", "waiting", "0").Err(); err != nil {
 		fail(err)
 	}
 	if err := seed.HSet(ctx, "{"+queuePartial+"}:stats",
@@ -54,7 +54,7 @@ func main() {
 	}
 
 	queuesFound := []string{}
-	for _, q := range monitor.ListQueues() {
+	for _, q := range monitor.ScanQueues() {
 		if q == queueEmpty || q == queuePartial || q == queuePaused {
 			queuesFound = append(queuesFound, q)
 		}
@@ -81,6 +81,19 @@ func getenv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+func newRawRedis() redis.UniversalClient {
+	if getenv("REDIS_MODE", "standalone") == "cluster" {
+		return redis.NewClusterClient(&redis.ClusterOptions{
+			Addrs: []string{getenv("REDIS_HOST", "omniq-redis") + ":6379"},
+		})
+	}
+
+	return redis.NewUniversalClient(&redis.UniversalOptions{
+		Addrs: []string{getenv("REDIS_HOST", "omniq-redis") + ":6379"},
+		DB:    0,
+	})
 }
 
 func fail(err error) {

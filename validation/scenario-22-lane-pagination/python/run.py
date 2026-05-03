@@ -5,6 +5,10 @@ from dataclasses import asdict
 
 from omniq import OmniqClient, QueueMonitor
 
+REDIS_HOST = os.environ.get("REDIS_HOST", "omniq-redis")
+REDIS_PORT = 6379
+REDIS_MODE = os.environ.get("REDIS_MODE", "standalone")
+
 
 def job_ids(rows):
     return [row["job_id"] if isinstance(row, dict) else row.job_id for row in rows]
@@ -17,7 +21,7 @@ def main() -> int:
     wait_jobs = [f"{queue}-wait-{i:03d}" for i in range(1, 6)]
     delayed_jobs = [f"{queue}-delayed-{i:03d}" for i in range(1, 6)]
 
-    client = OmniqClient(host="omniq-redis", port=6379)
+    client = OmniqClient(host=REDIS_HOST, port=REDIS_PORT)
     monitor = QueueMonitor(client)
 
     try:

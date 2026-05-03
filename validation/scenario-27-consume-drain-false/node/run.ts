@@ -2,6 +2,17 @@ import { spawn } from "node:child_process";
 import Redis from "/workspace/omniq-node/node_modules/ioredis/built/index.js";
 import { OmniqClient } from "/workspace/omniq-node/src/index.ts";
 
+const REDIS_HOST = process.env.REDIS_HOST ?? "omniq-redis";
+const REDIS_PORT = 6379;
+const REDIS_MODE = process.env.REDIS_MODE ?? "standalone";
+
+function newRawRedis() {
+  if (REDIS_MODE === "cluster") {
+    return new (Redis as any).Cluster([{ host: REDIS_HOST, port: REDIS_PORT }]);
+  }
+  return new Redis({ host: REDIS_HOST, port: REDIS_PORT });
+}
+
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -12,10 +23,11 @@ async function childMain() {
   const markerDone = process.env.MARKER_DONE as string;
 
   const client = await OmniqClient.create({
-    redis_url: "redis://omniq-redis:6379/0",
+    host: REDIS_HOST,
+    port: REDIS_PORT,
     scriptsDir: "/workspace/omniq-node/src/core/scripts",
   });
-  const marker = new Redis("redis://omniq-redis:6379/0");
+  const marker = newRawRedis();
 
   try {
     await client.consume({
@@ -45,10 +57,11 @@ async function parentMain() {
   const markerDone = `{${queue}}:marker:done`;
 
   const client = await OmniqClient.create({
-    redis_url: "redis://omniq-redis:6379/0",
+    host: REDIS_HOST,
+    port: REDIS_PORT,
     scriptsDir: "/workspace/omniq-node/src/core/scripts",
   });
-  const inspect = new Redis("redis://omniq-redis:6379/0");
+  const inspect = newRawRedis();
 
   try {
     await client.publish({ queue, job_id: firstJob, payload: { kind: "drain-false", slot: 1 }, now_ms_override: baseNowMs + 1 });

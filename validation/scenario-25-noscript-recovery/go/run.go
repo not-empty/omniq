@@ -11,15 +11,15 @@ import (
 )
 
 type resultView struct {
-	SDK                 string `json:"sdk"`
-	Queue               string `json:"queue"`
-	PublishedJobID      string `json:"published_job_id"`
-	ReservedJobID       string `json:"reserved_job_id"`
-	HeartbeatLockUntil  int64  `json:"heartbeat_lock_until_ms"`
-	CompletedState      string `json:"completed_state"`
-	DelayedJobID        string `json:"delayed_job_id"`
-	PromotedCount       int    `json:"promoted_count"`
-	PromotedState       string `json:"promoted_state"`
+	SDK                string `json:"sdk"`
+	Queue              string `json:"queue"`
+	PublishedJobID     string `json:"published_job_id"`
+	ReservedJobID      string `json:"reserved_job_id"`
+	HeartbeatLockUntil int64  `json:"heartbeat_lock_until_ms"`
+	CompletedState     string `json:"completed_state"`
+	DelayedJobID       string `json:"delayed_job_id"`
+	PromotedCount      int    `json:"promoted_count"`
+	PromotedState      string `json:"promoted_state"`
 }
 
 func reserveJob(client *omniq.Client, queue string, nowMs int64) omniq.ReserveJob {
@@ -49,13 +49,13 @@ func main() {
 	publishJob := queue + "-job-001"
 	delayedJob := queue + "-delayed-001"
 
-	client, err := omniq.NewClient(omniq.ClientOpts{Host: "omniq-redis", Port: 6379})
+	client, err := omniq.NewClient(omniq.ClientOpts{Host: getenv("REDIS_HOST", "omniq-redis"), Port: 6379})
 	if err != nil {
 		fail(err)
 	}
 
 	ctx := context.Background()
-	seed := redis.NewClient(&redis.Options{Addr: "omniq-redis:6379"})
+	seed := newRawRedis()
 	defer func() { _ = seed.Close() }()
 
 	scriptFlush(seed, ctx)
@@ -123,7 +123,17 @@ func main() {
 	fmt.Println(string(b))
 }
 
-func scriptFlush(seed *redis.Client, ctx context.Context) {
+func scriptFlush(seed redis.UniversalClient, ctx context.Context) {
+	if cluster, ok := seed.(*redis.ClusterClient); ok {
+		err := cluster.ForEachMaster(ctx, func(ctx context.Context, c *redis.Client) error {
+			return c.ScriptFlush(ctx).Err()
+		})
+		if err != nil {
+			fail(err)
+		}
+		return
+	}
+
 	if err := seed.ScriptFlush(ctx).Err(); err != nil {
 		fail(err)
 	}
@@ -141,6 +151,19 @@ func getenv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+func newRawRedis() redis.UniversalClient {
+	if getenv("REDIS_MODE", "standalone") == "cluster" {
+		return redis.NewClusterClient(&redis.ClusterOptions{
+			Addrs: []string{getenv("REDIS_HOST", "omniq-redis") + ":6379"},
+		})
+	}
+
+	return redis.NewUniversalClient(&redis.UniversalOptions{
+		Addrs: []string{getenv("REDIS_HOST", "omniq-redis") + ":6379"},
+		DB:    0,
+	})
 }
 
 func fail(err error) {

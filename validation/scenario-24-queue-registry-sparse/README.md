@@ -1,18 +1,18 @@
-# Scenario 24: Queue Registry And Sparse State
+# Scenario 24: Queue Discovery And Sparse State
 
 ## Purpose
 
-Validate monitor behavior when `omniq:queues` contains queues with partial or mostly empty Redis state.
+Validate monitor behavior when queue discovery is driven by sparse `*:stats` state.
 
 ## Validate
 
-- `list_queues`
+- `scan_queues`
 - `stats(queue)`
 - `stats_many([...])`
 
 ## Expected Outcome
 
-- queues present only in the registry are still listed
+- queues with sparse stats are still discoverable
 - missing stats default cleanly to zero values
 - paused status is derived correctly even when stats are missing
 - partial stats do not break `stats` or `stats_many`
@@ -24,6 +24,7 @@ This scenario has one tiny runner per SDK, all owned by the contract repo:
 - [python/run.py](C:/Users/disarli/Documents/ops/omniq/validation/scenario-24-queue-registry-sparse/python/run.py)
 - [node/run.ts](C:/Users/disarli/Documents/ops/omniq/validation/scenario-24-queue-registry-sparse/node/run.ts)
 - [go/run.go](C:/Users/disarli/Documents/ops/omniq/validation/scenario-24-queue-registry-sparse/go/run.go)
+- [php/run.php](/home/disarli/Downloads/omniq-core/validation/scenario-24-queue-registry-sparse/php/run.php)
 
 ## Suggested Commands
 
@@ -42,7 +43,13 @@ docker compose exec omniq-node sh -lc 'PREFIX=validation-s24-node npx tsx /works
 Go:
 
 ```bash
-docker compose exec omniq-go sh -lc "export PATH=/usr/bin:/bin; export GOTOOLCHAIN=auto; cd /workspace/omniq/validation/scenario-24-queue-registry-sparse/go && PREFIX=validation-s24-go /usr/bin/go run ."
+docker compose exec omniq-go sh -lc "export PATH=/usr/local/go/bin:/usr/bin:/bin; export GOTOOLCHAIN=auto; cd /workspace/omniq/validation/scenario-24-queue-registry-sparse/go && /usr/local/go/bin/go mod tidy >/dev/null 2>&1 && PREFIX=validation-s24-go /usr/local/go/bin/go run ."
+```
+
+PHP:
+
+```bash
+docker compose exec omniq-php sh -lc 'cd /workspace/omniq-php && PREFIX=validation-s24-php php /workspace/omniq/validation/scenario-24-queue-registry-sparse/php/run.php'
 ```
 
 ## Output Shape

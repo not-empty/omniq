@@ -32,6 +32,7 @@ This scenario has one tiny runner per SDK, all owned by the contract repo:
 - [python/run.py](/Users/disarli/Documents/ops/omniq/validation/scenario-11-child-workflow/python/run.py)
 - [node/run.ts](/Users/disarli/Documents/ops/omniq/validation/scenario-11-child-workflow/node/run.ts)
 - [go/run.go](/Users/disarli/Documents/ops/omniq/validation/scenario-11-child-workflow/go/run.go)
+- [php/run.php](/home/disarli/Downloads/omniq-core/validation/scenario-11-child-workflow/php/run.php)
 
 ## Suggested Commands
 
@@ -51,6 +52,12 @@ Go:
 
 ```bash
 docker compose exec omniq-go sh -lc "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; export GOTOOLCHAIN=auto; cd /workspace/omniq/validation/scenario-11-child-workflow/go && go mod tidy && KEY=validation-s11-go go run ."
+```
+
+PHP:
+
+```bash
+docker compose exec omniq-php sh -lc 'cd /workspace/omniq-php && KEY=validation-s11-php php /workspace/omniq/validation/scenario-11-child-workflow/php/run.php'
 ```
 
 ## Output Shape

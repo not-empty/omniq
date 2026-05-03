@@ -9,14 +9,24 @@ import redis
 
 from omniq import OmniqClient
 
+REDIS_HOST = os.environ.get("REDIS_HOST", "omniq-redis")
+REDIS_PORT = 6379
+REDIS_MODE = os.environ.get("REDIS_MODE", "standalone")
+
+
+def new_seed() -> redis.Redis:
+    if REDIS_MODE == "cluster":
+        return redis.RedisCluster(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
+    return redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
+
 
 def child_main() -> int:
     queue = os.environ["QUEUE"]
     marker_started = os.environ["MARKER_STARTED"]
     marker_done = os.environ["MARKER_DONE"]
 
-    client = OmniqClient(host="omniq-redis", port=6379)
-    marker = redis.Redis(host="omniq-redis", port=6379, decode_responses=True)
+    client = OmniqClient(host=REDIS_HOST, port=REDIS_PORT)
+    marker = new_seed()
 
     def handler(ctx) -> None:
         marker.set(marker_started, "1")
@@ -49,8 +59,8 @@ def parent_main() -> int:
     marker_started = f"{{{queue}}}:marker:started"
     marker_done = f"{{{queue}}}:marker:done"
 
-    client = OmniqClient(host="omniq-redis", port=6379)
-    inspect = redis.Redis(host="omniq-redis", port=6379, decode_responses=True)
+    client = OmniqClient(host=REDIS_HOST, port=REDIS_PORT)
+    inspect = new_seed()
 
     try:
         client.publish(queue=queue, job_id=first_job, payload={"kind": "drain-false", "slot": 1}, now_ms_override=base_now_ms + 1)

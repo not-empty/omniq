@@ -7,6 +7,20 @@ import redis
 
 from omniq import OmniqClient, QueueMonitor
 
+REDIS_HOST = os.environ.get("REDIS_HOST", "omniq-redis")
+REDIS_PORT = 6379
+REDIS_MODE = os.environ.get("REDIS_MODE", "standalone")
+
+
+def new_seed() -> redis.Redis:
+    if REDIS_MODE == "cluster":
+        return redis.RedisCluster(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
+    return redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
+
+REDIS_HOST = os.environ.get("REDIS_HOST", "omniq-redis")
+REDIS_PORT = 6379
+REDIS_MODE = os.environ.get("REDIS_MODE", "standalone")
+
 
 def main() -> int:
     prefix = os.environ.get("PREFIX", "validation-s24-python")
@@ -14,12 +28,12 @@ def main() -> int:
     queue_partial = f"{prefix}-partial"
     queue_paused = f"{prefix}-paused"
 
-    client = OmniqClient(host="omniq-redis", port=6379)
+    client = OmniqClient(host=REDIS_HOST, port=REDIS_PORT)
     monitor = QueueMonitor(client)
-    seed = redis.Redis(host="omniq-redis", port=6379, decode_responses=True)
+    seed = new_seed()
 
     try:
-        seed.sadd("omniq:queues", f"{{{queue_empty}}}", f"{{{queue_partial}}}", f"{{{queue_paused}}}")
+        seed.hset(f"{{{queue_empty}}}:stats", mapping={"waiting": "0"})
         seed.hset(
             f"{{{queue_partial}}}:stats",
             mapping={
@@ -29,9 +43,10 @@ def main() -> int:
                 "last_activity_ms": "1775410000001",
             },
         )
+        seed.hset(f"{{{queue_paused}}}:stats", mapping={"waiting": "0"})
         seed.set(f"{{{queue_paused}}}:paused", "1")
 
-        queues_found = sorted([q for q in monitor.list_queues() if q in {queue_empty, queue_partial, queue_paused}])
+        queues_found = sorted([q for q in monitor.scan_queues() if q in {queue_empty, queue_partial, queue_paused}])
         stats_empty = asdict(monitor.stats(queue_empty))
         stats_partial = asdict(monitor.stats(queue_partial))
         stats_paused = asdict(monitor.stats(queue_paused))

@@ -36,6 +36,7 @@ This scenario has one tiny runner per SDK, all owned by the contract repo:
 - [python/run.py](/Users/disarli/Documents/ops/omniq/validation/scenario-09-grouped-jobs/python/run.py)
 - [node/run.ts](/Users/disarli/Documents/ops/omniq/validation/scenario-09-grouped-jobs/node/run.ts)
 - [go/run.go](/Users/disarli/Documents/ops/omniq/validation/scenario-09-grouped-jobs/go/run.go)
+- [php/run.php](/Users/disarli/Documents/ops/omniq/validation/scenario-09-grouped-jobs/php/run.php)
 
 Each runner validates:
 
@@ -62,6 +63,12 @@ Go:
 
 ```bash
 docker compose exec omniq-go sh -lc "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; export GOTOOLCHAIN=auto; cd /workspace/omniq/validation/scenario-09-grouped-jobs/go && go mod tidy && QUEUE=validation-s09-go go run ."
+```
+
+PHP:
+
+```bash
+docker compose exec omniq-php sh -lc 'cd /workspace/omniq-php && QUEUE=validation-s09-php php /workspace/omniq/validation/scenario-09-grouped-jobs/php/run.php'
 ```
 
 ## Output Shape

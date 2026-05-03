@@ -1,5 +1,9 @@
 import { OmniqClient, QueueMonitor } from "/workspace/omniq-node/src/index.ts";
 
+const REDIS_HOST = process.env.REDIS_HOST ?? "omniq-redis";
+const REDIS_PORT = 6379;
+const REDIS_MODE = process.env.REDIS_MODE ?? "standalone";
+
 async function reserveJob(client: OmniqClient, queue: string, nowMs: number) {
   const res = await client.reserve({ queue, now_ms_override: nowMs });
   if (!res || (res as any).status !== "JOB") {
@@ -15,7 +19,8 @@ async function main() {
   const baseNowMs = 1775290000000;
 
   const client = await OmniqClient.create({
-    redis_url: "redis://omniq-redis:6379/0",
+    host: REDIS_HOST,
+    port: REDIS_PORT,
     scriptsDir: "/workspace/omniq-node/src/core/scripts",
   });
   const monitor = new QueueMonitor(client);
@@ -42,7 +47,7 @@ async function main() {
     });
     void activeRes;
 
-    const listQueues = await monitor.list_queues();
+    const listQueues = await monitor.scan_queues();
     const queuesFound = listQueues.filter((q) => q === queueA || q === queueB).sort();
     const statsA = await monitor.stats(queueA);
     const statsB = await monitor.stats(queueB);

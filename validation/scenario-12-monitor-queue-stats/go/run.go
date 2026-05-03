@@ -35,7 +35,7 @@ func main() {
 	queueB := prefix + "-mixed"
 	baseNowMs := int64(1775290000000)
 
-	client, err := omniq.NewClient(omniq.ClientOpts{Host: "omniq-redis", Port: 6379})
+	client, err := omniq.NewClient(omniq.ClientOpts{Host: getenv("REDIS_HOST", "omniq-redis"), Port: 6379})
 	if err != nil {
 		fail(err)
 	}
@@ -64,7 +64,7 @@ func main() {
 	}
 	_ = activeRes
 
-	listQueues := monitor.ListQueues()
+	listQueues := monitor.ScanQueues()
 	queuesFound := make([]string, 0, 2)
 	for _, q := range listQueues {
 		if q == queueA || q == queueB {

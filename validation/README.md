@@ -5,6 +5,7 @@ This folder is the shared validation workspace for OmniQ core behavior across:
 - Python SDK
 - Node SDK
 - Go SDK
+- PHP SDK
 
 It lives in the contract repository on purpose.
 
@@ -87,6 +88,10 @@ Each scenario has its own folder:
 - `scenario-26-consume-drain-true`
 - `scenario-27-consume-drain-false`
 - `scenario-28-consume-max-attempts`
+- `scenario-29-queue-name-validation`
+- `scenario-30-scan-queues-discovery-rules`
+- `scenario-31-multi-queue-noscript-recovery`
+- `scenario-32-transport-backend-smoke`
 
 Each scenario folder should eventually contain:
 
@@ -117,11 +122,21 @@ Redis inside containers:
 - host: `omniq-redis`
 - port: `6379`
 
+Redis Cluster inside containers:
+
+- startup host: `omniq-redis-c1`
+- port: `6379`
+
 You can also run the suite from one place with:
 
 ```bash
 ./validation/run_suite.sh
 ```
+
+By default the suite runs every scenario against both:
+
+- standalone Redis
+- Redis Cluster
 
 Or run only selected scenarios:
 
@@ -129,10 +144,18 @@ Or run only selected scenarios:
 ./validation/run_suite.sh 25 26 27
 ```
 
+Or limit to one backend:
+
+```bash
+VALIDATION_BACKENDS='standalone' ./validation/run_suite.sh
+VALIDATION_BACKENDS='cluster' ./validation/run_suite.sh
+```
+
 The runner:
 
 - ensures the Docker services are up
-- runs Python, Node, and Go for each requested scenario
+- runs Python, Node, Go, and PHP for each requested scenario
+- runs each requested scenario against standalone Redis and Redis Cluster
 - saves each scenario output under `validation/results/<timestamp>/`
 - returns non-zero if any scenario runner fails
 
@@ -146,7 +169,7 @@ So the process should be:
 
 1. Define scenario once in the contract repo.
 2. Execute the same logical scenario in Python first.
-3. Port the same scenario to Node and Go.
+3. Port the same scenario to Node, Go, and PHP.
 4. Compare SDK outputs and Redis truth.
 5. Only then decide whether there is a bug, contract gap, or acceptable language-specific difference.
 

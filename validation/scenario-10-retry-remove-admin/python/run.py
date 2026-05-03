@@ -5,6 +5,10 @@ from dataclasses import asdict
 
 from omniq.client import OmniqClient
 
+REDIS_HOST = os.environ.get("REDIS_HOST", "omniq-redis")
+REDIS_PORT = 6379
+REDIS_MODE = os.environ.get("REDIS_MODE", "standalone")
+
 
 def reserve_job(client: OmniqClient, queue: str, now_ms: int):
     res = client.reserve(queue=queue, now_ms_override=now_ms)
@@ -23,7 +27,7 @@ def main() -> int:
     waiting_remove_job = f"{queue}-waiting-remove-job-001"
     delayed_remove_job = f"{queue}-delayed-remove-job-001"
 
-    client = OmniqClient(host="omniq-redis", port=6379)
+    client = OmniqClient(host=REDIS_HOST, port=REDIS_PORT)
 
     try:
         client.publish(queue=queue, job_id=active_job, payload={"kind": "admin", "slot": "active"}, max_attempts=3, now_ms_override=base_now_ms + 1)

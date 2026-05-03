@@ -42,7 +42,7 @@ func main() {
 	completedJob := queue + "-completed-001"
 	failedJob := queue + "-failed-001"
 
-	client, err := omniq.NewClient(omniq.ClientOpts{Host: "omniq-redis", Port: 6379})
+	client, err := omniq.NewClient(omniq.ClientOpts{Host: getenv("REDIS_HOST", "omniq-redis"), Port: 6379})
 	if err != nil {
 		fail(err)
 	}

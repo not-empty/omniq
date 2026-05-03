@@ -231,14 +231,17 @@ If an index ever drifts, the transactional lane still defines the real state.
 
 These keys are queue-level monitoring structures maintained atomically by the same Lua scripts.
 
-## 4.1 Global queue registry
+## 4.1 Queue discovery
 
-- `omniq:queues`
-  - **Type:** SET
-  - **Purpose:** registry of known queue bases.
-  - **Stored value:** queue base, for example `{emails}`.
-  - **Usage:** cheap queue discovery for monitor / UI / manager.
-  - **Write rule:** touched by enqueue and by all major queue mutations via `SADD`.
+Queue discovery is no longer maintained as a global Redis registry.
+
+The monitoring/discovery model is:
+
+- scan queue-local `*:stats` hashes
+- normalize the discovered `{Q}` base back to queue name
+- treat discovery as an operational/admin concern, not a transactional Redis invariant
+
+This separation keeps queue execution atomic while allowing cluster-safe queue discovery.
 
 ## 4.2 Per-queue stats
 
@@ -318,7 +321,6 @@ Index effect:
 - `ZADD {Q}:idx:wait now_ms job_id`
 
 Monitoring effect:
-- `SADD omniq:queues {Q}`
 - `HINCRBY {Q}:stats waiting 1`
 - `HINCRBY {Q}:stats waiting_total 1`
 - set `last_activity_ms`
@@ -337,7 +339,6 @@ Index effect:
 - `ZADD {Q}:idx:wait now_ms job_id`
 
 Monitoring effect:
-- `SADD omniq:queues {Q}`
 - `HINCRBY {Q}:stats group_waiting 1`
 - `HINCRBY {Q}:stats waiting_total 1`
 - increment `groups_ready` if the group is newly made ready
@@ -355,7 +356,6 @@ Index effect:
 - `ZADD {Q}:idx:delayed now_ms job_id`
 
 Monitoring effect:
-- `SADD omniq:queues {Q}`
 - `HINCRBY {Q}:stats delayed 1`
 - set `last_activity_ms`
 - set `last_enqueue_ms`
@@ -707,7 +707,7 @@ Because retries keep the original `queued_ms`, delayed backoff remains part of t
 
 A manager or monitor can build a queue card from:
 
-- queue base from `omniq:queues`
+- queue name discovered from queue-local `*:stats` keys
 - stats from `{Q}:stats`
 - pause status from existence of `{Q}:paused`
 
@@ -781,7 +781,7 @@ rows := monitor.GroupsReadyWithScores("emails", 0, 200)
 
 ## 8.1 Global keys
 
-- `omniq:queues` — known queue registry
+No global queue registry key is required by the cluster-safe monitor model.
 
 ## 8.2 Per-queue transactional keys
 

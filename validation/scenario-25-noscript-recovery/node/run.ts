@@ -1,6 +1,17 @@
 import Redis from "/workspace/omniq-node/node_modules/ioredis/built/index.js";
 import { OmniqClient } from "/workspace/omniq-node/src/index.ts";
 
+const REDIS_HOST = process.env.REDIS_HOST ?? "omniq-redis";
+const REDIS_PORT = 6379;
+const REDIS_MODE = process.env.REDIS_MODE ?? "standalone";
+
+function newRawRedis() {
+  if (REDIS_MODE === "cluster") {
+    return new (Redis as any).Cluster([{ host: REDIS_HOST, port: REDIS_PORT }]);
+  }
+  return new Redis({ host: REDIS_HOST, port: REDIS_PORT });
+}
+
 async function reserveJob(client: OmniqClient, queue: string, nowMs: number) {
   const res = await client.reserve({ queue, now_ms_override: nowMs });
   if (!res || (res as any).status !== "JOB") {
@@ -21,10 +32,11 @@ async function main() {
   const delayedJob = `${queue}-delayed-001`;
 
   const client = await OmniqClient.create({
-    redis_url: "redis://omniq-redis:6379/0",
+    host: REDIS_HOST,
+    port: REDIS_PORT,
     scriptsDir: "/workspace/omniq-node/src/core/scripts",
   });
-  const seed = new Redis("redis://omniq-redis:6379/0");
+  const seed = newRawRedis();
 
   try {
     await scriptFlush(seed);

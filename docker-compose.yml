@@ -12,6 +12,97 @@ services:
       timeout: 3s
       retries: 20
 
+  omniq-redis-c1:
+    image: redis:7.4-alpine
+    command: >
+      redis-server
+      --appendonly yes
+      --cluster-enabled yes
+      --cluster-config-file nodes.conf
+      --cluster-node-timeout 5000
+      --cluster-announce-port 6379
+      --cluster-announce-bus-port 16379
+    volumes:
+      - redis_c1_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  omniq-redis-c2:
+    image: redis:7.4-alpine
+    command: >
+      redis-server
+      --appendonly yes
+      --cluster-enabled yes
+      --cluster-config-file nodes.conf
+      --cluster-node-timeout 5000
+      --cluster-announce-port 6379
+      --cluster-announce-bus-port 16379
+    volumes:
+      - redis_c2_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  omniq-redis-c3:
+    image: redis:7.4-alpine
+    command: >
+      redis-server
+      --appendonly yes
+      --cluster-enabled yes
+      --cluster-config-file nodes.conf
+      --cluster-node-timeout 5000
+      --cluster-announce-port 6379
+      --cluster-announce-bus-port 16379
+    volumes:
+      - redis_c3_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  omniq-redis-cluster-init:
+    image: redis:7.4-alpine
+    depends_on:
+      omniq-redis-c1:
+        condition: service_healthy
+      omniq-redis-c2:
+        condition: service_healthy
+      omniq-redis-c3:
+        condition: service_healthy
+    restart: "no"
+    command:
+      [
+        "sh",
+        "-lc",
+        "set -eu && \
+        echo 'DNS test:' && \
+        getent hosts omniq-redis-c1 || true && \
+        getent hosts omniq-redis-c2 || true && \
+        getent hosts omniq-redis-c3 || true && \
+        echo 'waiting nodes...' && \
+        redis-cli -h omniq-redis-c1 -p 6379 ping && \
+        redis-cli -h omniq-redis-c2 -p 6379 ping && \
+        redis-cli -h omniq-redis-c3 -p 6379 ping && \
+        if redis-cli -h omniq-redis-c1 -p 6379 cluster info | grep -q 'cluster_state:ok'; then \
+          echo 'cluster already configured'; \
+          exit 0; \
+        fi && \
+        echo 'creating cluster...' && \
+        redis-cli --cluster create \
+          omniq-redis-c1:6379 \
+          omniq-redis-c2:6379 \
+          omniq-redis-c3:6379 \
+          --cluster-replicas 0 \
+          --cluster-yes && \
+        echo 'done.'"
+      ]
+
   omniq-python:
     image: python:3.12-slim
     working_dir: /workspace/omniq-python
@@ -24,6 +115,8 @@ services:
     depends_on:
       omniq-redis:
         condition: service_healthy
+      omniq-redis-cluster-init:
+        condition: service_completed_successfully
     command:
       [
         "sh",
@@ -47,6 +140,8 @@ services:
     depends_on:
       omniq-redis:
         condition: service_healthy
+      omniq-redis-cluster-init:
+        condition: service_completed_successfully
     command:
       [
         "sh",
@@ -57,7 +152,7 @@ services:
     stdin_open: true
 
   omniq-go:
-    image: alpine:3.21
+    image: golang:1.24-alpine
     working_dir: /workspace/omniq-go
     volumes:
       - ./:/workspace/omniq
@@ -67,17 +162,44 @@ services:
     depends_on:
       omniq-redis:
         condition: service_healthy
+      omniq-redis-cluster-init:
+        condition: service_completed_successfully
     command:
       [
         "sh",
         "-lc",
-        "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; export GOTOOLCHAIN=auto; apk add --no-cache go git && go mod download && tail -f /dev/null"
+        "apk add --no-cache git && /usr/local/go/bin/go mod download && tail -f /dev/null"
+      ]
+    tty: true
+    stdin_open: true
+
+  omniq-php:
+    build:
+      context: ../omniq-php
+      dockerfile: Dockerfile
+    working_dir: /workspace/omniq-php
+    volumes:
+      - ./:/workspace/omniq
+      - ../omniq-php:/workspace/omniq-php
+    depends_on:
+      omniq-redis:
+        condition: service_healthy
+      omniq-redis-cluster-init:
+        condition: service_completed_successfully
+    command:
+      [
+        "sh",
+        "-lc",
+        "composer install --no-interaction && tail -f /dev/null"
       ]
     tty: true
     stdin_open: true
 
 volumes:
   redis_data:
+  redis_c1_data:
+  redis_c2_data:
+  redis_c3_data:
   omniq_node_modules:
   npm_cache:
   go_mod_cache:

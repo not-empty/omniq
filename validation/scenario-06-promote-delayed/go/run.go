@@ -23,7 +23,7 @@ func main() {
 	dueMs := baseNowMs + 5000
 
 	client, err := omniq.NewClient(omniq.ClientOpts{
-		Host: "omniq-redis",
+		Host: getenv("REDIS_HOST", "omniq-redis"),
 		Port: 6379,
 	})
 	if err != nil {

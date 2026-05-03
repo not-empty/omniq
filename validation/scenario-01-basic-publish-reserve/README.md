@@ -32,7 +32,6 @@ This is the smallest full-path scenario and should be considered the baseline fo
 - `{Q}:idx:wait`
 - `{Q}:idx:active`
 - `{Q}:stats`
-- `omniq:queues`
 
 ## Suggested Queue
 
@@ -68,6 +67,7 @@ This scenario has one tiny runner per SDK, all owned by the contract repo:
 - [python/run.py](/Users/disarli/Documents/ops/omniq/validation/scenario-01-basic-publish-reserve/python/run.py)
 - [node/run.ts](/Users/disarli/Documents/ops/omniq/validation/scenario-01-basic-publish-reserve/node/run.ts)
 - [go/run.go](/Users/disarli/Documents/ops/omniq/validation/scenario-01-basic-publish-reserve/go/run.go)
+- [php/run.php](/Users/disarli/Documents/ops/omniq/validation/scenario-01-basic-publish-reserve/php/run.php)
 
 Each runner validates:
 
@@ -96,6 +96,12 @@ Go:
 docker compose exec omniq-go sh -lc 'cd /workspace/omniq/validation/scenario-01-basic-publish-reserve/go && QUEUE=validation-basic-go go run .'
 ```
 
+PHP:
+
+```bash
+docker compose exec omniq-php sh -lc 'cd /workspace/omniq-php && QUEUE=validation-basic-php php /workspace/omniq/validation/scenario-01-basic-publish-reserve/php/run.php'
+```
+
 ## Output Shape
 
 Each runner prints a JSON object with:
@@ -106,4 +112,4 @@ Each runner prints a JSON object with:
 - `job_id`
 - `reserve`
 
-This makes it easier to compare the three SDKs directly.
+This makes it easier to compare the four SDKs directly.

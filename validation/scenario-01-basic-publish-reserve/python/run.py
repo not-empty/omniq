@@ -4,6 +4,10 @@ import sys
 
 from omniq.client import OmniqClient
 
+REDIS_HOST = os.environ.get("REDIS_HOST", "omniq-redis")
+REDIS_PORT = 6379
+REDIS_MODE = os.environ.get("REDIS_MODE", "standalone")
+
 
 def main() -> int:
     queue = os.environ.get("QUEUE", "validation-basic-python")
@@ -15,7 +19,7 @@ def main() -> int:
         "value": 1,
     }
 
-    client = OmniqClient(host="omniq-redis", port=6379)
+    client = OmniqClient(host=REDIS_HOST, port=REDIS_PORT)
     invalid_publish_rejected = False
 
     try:

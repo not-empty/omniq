@@ -1,11 +1,16 @@
 import { OmniqClient } from "/workspace/omniq-node/src/index.ts";
+
+const REDIS_HOST = process.env.REDIS_HOST ?? "omniq-redis";
+const REDIS_PORT = 6379;
+const REDIS_MODE = process.env.REDIS_MODE ?? "standalone";
 import { childsAnchor } from "/workspace/omniq-node/src/helper.ts";
 
 async function main() {
   const key = process.env.KEY ?? "validation-s11-node";
 
   const client = await OmniqClient.create({
-    redis_url: "redis://omniq-redis:6379/0",
+    host: REDIS_HOST,
+    port: REDIS_PORT,
     scriptsDir: "/workspace/omniq-node/src/core/scripts",
   });
 

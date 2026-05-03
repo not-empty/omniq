@@ -1,6 +1,17 @@
 import Redis from "/workspace/omniq-node/node_modules/ioredis/built/index.js";
 import { OmniqClient, QueueMonitor } from "/workspace/omniq-node/src/index.ts";
 
+const REDIS_HOST = process.env.REDIS_HOST ?? "omniq-redis";
+const REDIS_PORT = 6379;
+const REDIS_MODE = process.env.REDIS_MODE ?? "standalone";
+
+function newRawRedis() {
+  if (REDIS_MODE === "cluster") {
+    return new (Redis as any).Cluster([{ host: REDIS_HOST, port: REDIS_PORT }]);
+  }
+  return new Redis({ host: REDIS_HOST, port: REDIS_PORT });
+}
+
 async function main() {
   const prefix = process.env.PREFIX ?? "validation-s24-node";
   const queueEmpty = `${prefix}-empty`;
@@ -8,14 +19,15 @@ async function main() {
   const queuePaused = `${prefix}-paused`;
 
   const client = await OmniqClient.create({
-    redis_url: "redis://omniq-redis:6379/0",
+    host: REDIS_HOST,
+    port: REDIS_PORT,
     scriptsDir: "/workspace/omniq-node/src/core/scripts",
   });
   const monitor = new QueueMonitor(client);
-  const seed = new Redis("redis://omniq-redis:6379/0");
+  const seed = newRawRedis();
 
   try {
-    await seed.sadd("omniq:queues", `{${queueEmpty}}`, `{${queuePartial}}`, `{${queuePaused}}`);
+    await seed.hset(`{${queueEmpty}}:stats`, { waiting: "0" });
     await seed.hset(`{${queuePartial}}:stats`, {
       waiting: "2",
       group_waiting: "1",
@@ -24,7 +36,7 @@ async function main() {
     });
     await seed.set(`{${queuePaused}}:paused`, "1");
 
-    const queuesFound = (await monitor.list_queues()).filter((q) =>
+    const queuesFound = (await monitor.scan_queues()).filter((q) =>
       [queueEmpty, queuePartial, queuePaused].includes(q)
     ).sort();
 

@@ -15,14 +15,14 @@ import (
 )
 
 type resultView struct {
-	SDK           string         `json:"sdk"`
-	Queue         string         `json:"queue"`
-	ChildExitCode int            `json:"child_exit_code"`
-	HandlerStarted bool          `json:"handler_started"`
-	HandlerDone   bool           `json:"handler_done"`
-	FirstJobState string         `json:"first_job_state"`
-	SecondJobState string        `json:"second_job_state"`
-	Stats         map[string]int `json:"stats"`
+	SDK            string         `json:"sdk"`
+	Queue          string         `json:"queue"`
+	ChildExitCode  int            `json:"child_exit_code"`
+	HandlerStarted bool           `json:"handler_started"`
+	HandlerDone    bool           `json:"handler_done"`
+	FirstJobState  string         `json:"first_job_state"`
+	SecondJobState string         `json:"second_job_state"`
+	Stats          map[string]int `json:"stats"`
 }
 
 func childMain() {
@@ -30,21 +30,21 @@ func childMain() {
 	markerStarted := os.Getenv("MARKER_STARTED")
 	markerDone := os.Getenv("MARKER_DONE")
 
-	client, err := omniq.NewClient(omniq.ClientOpts{Host: "omniq-redis", Port: 6379})
+	client, err := omniq.NewClient(omniq.ClientOpts{Host: getenv("REDIS_HOST", "omniq-redis"), Port: 6379})
 	if err != nil {
 		fail(err)
 	}
 
 	ctx := context.Background()
-	marker := redis.NewClient(&redis.Options{Addr: "omniq-redis:6379"})
+	marker := newRawRedis()
 	defer func() { _ = marker.Close() }()
 
 	err = client.Consume(omniq.ConsumeOpts{
-		Queue:           queue,
-		PollIntervalS:   0.02,
+		Queue:            queue,
+		PollIntervalS:    0.02,
 		PromoteIntervalS: 10.0,
-		ReapIntervalS:   10.0,
-		Drain:           false,
+		ReapIntervalS:    10.0,
+		Drain:            false,
 		Handler: func(job omniq.JobCtx) {
 			_ = marker.Set(ctx, markerStarted, "1", 0).Err()
 			time.Sleep(1500 * time.Millisecond)
@@ -64,20 +64,20 @@ func parentMain() {
 	markerStarted := "{" + queue + "}:marker:started"
 	markerDone := "{" + queue + "}:marker:done"
 
-	client, err := omniq.NewClient(omniq.ClientOpts{Host: "omniq-redis", Port: 6379})
+	client, err := omniq.NewClient(omniq.ClientOpts{Host: getenv("REDIS_HOST", "omniq-redis"), Port: 6379})
 	if err != nil {
 		fail(err)
 	}
 
 	ctx := context.Background()
-	inspect := redis.NewClient(&redis.Options{Addr: "omniq-redis:6379"})
+	inspect := newRawRedis()
 	defer func() { _ = inspect.Close() }()
 
 	mustPublish(client, omniq.PublishOpts{Queue: queue, JobID: firstJob, Payload: map[string]any{"kind": "drain-false", "slot": 1}, NowMsOverride: baseNowMs + 1})
 	mustPublish(client, omniq.PublishOpts{Queue: queue, JobID: secondJob, Payload: map[string]any{"kind": "drain-false", "slot": 2}, NowMsOverride: baseNowMs + 2})
 
 	binaryPath := filepath.Join(os.TempDir(), "omniq-s27-go-child")
-	buildCmd := exec.Command("/usr/bin/go", "build", "-buildvcs=false", "-o", binaryPath, ".")
+	buildCmd := exec.Command("/usr/local/go/bin/go", "build", "-buildvcs=false", "-o", binaryPath, ".")
 	buildCmd.Dir = "."
 	buildCmd.Stdout = os.Stdout
 	buildCmd.Stderr = os.Stderr
@@ -162,7 +162,7 @@ func mustPublish(client *omniq.Client, opts omniq.PublishOpts) {
 	}
 }
 
-func getString(r *redis.Client, ctx context.Context, key string) string {
+func getString(r redis.UniversalClient, ctx context.Context, key string) string {
 	v, err := r.Get(ctx, key).Result()
 	if err != nil {
 		return ""
@@ -170,7 +170,7 @@ func getString(r *redis.Client, ctx context.Context, key string) string {
 	return v
 }
 
-func hgetString(r *redis.Client, ctx context.Context, key, field string) string {
+func hgetString(r redis.UniversalClient, ctx context.Context, key, field string) string {
 	v, err := r.HGet(ctx, key, field).Result()
 	if err != nil {
 		return ""
@@ -178,7 +178,7 @@ func hgetString(r *redis.Client, ctx context.Context, key, field string) string 
 	return v
 }
 
-func hgetInt(r *redis.Client, ctx context.Context, key, field string) int {
+func hgetInt(r redis.UniversalClient, ctx context.Context, key, field string) int {
 	v, err := r.HGet(ctx, key, field).Int()
 	if err != nil {
 		return 0
@@ -191,6 +191,19 @@ func getenv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+func newRawRedis() redis.UniversalClient {
+	if getenv("REDIS_MODE", "standalone") == "cluster" {
+		return redis.NewClusterClient(&redis.ClusterOptions{
+			Addrs: []string{getenv("REDIS_HOST", "omniq-redis") + ":6379"},
+		})
+	}
+
+	return redis.NewUniversalClient(&redis.UniversalOptions{
+		Addrs: []string{getenv("REDIS_HOST", "omniq-redis") + ":6379"},
+		DB:    0,
+	})
 }
 
 func fail(err error) {

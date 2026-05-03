@@ -1,5 +1,9 @@
 import { OmniqClient, QueueMonitor } from "/workspace/omniq-node/src/index.ts";
 
+const REDIS_HOST = process.env.REDIS_HOST ?? "omniq-redis";
+const REDIS_PORT = 6379;
+const REDIS_MODE = process.env.REDIS_MODE ?? "standalone";
+
 function jobIds(rows: Array<{ job_id: string }>): string[] {
   return rows.map((row) => row.job_id);
 }
@@ -12,7 +16,8 @@ async function main() {
   const delayedJobs = Array.from({ length: 5 }, (_, i) => `${queue}-delayed-${String(i + 1).padStart(3, "0")}`);
 
   const client = await OmniqClient.create({
-    redis_url: "redis://omniq-redis:6379/0",
+    host: REDIS_HOST,
+    port: REDIS_PORT,
     scriptsDir: "/workspace/omniq-node/src/core/scripts",
   });
   const monitor = new QueueMonitor(client);

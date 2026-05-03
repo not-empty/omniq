@@ -36,7 +36,7 @@ func main() {
 	firstJob := queue + "-alpha-job-001"
 	secondJob := queue + "-alpha-job-002"
 
-	client, err := omniq.NewClient(omniq.ClientOpts{Host: "omniq-redis", Port: 6379})
+	client, err := omniq.NewClient(omniq.ClientOpts{Host: getenv("REDIS_HOST", "omniq-redis"), Port: 6379})
 	if err != nil {
 		fail(err)
 	}

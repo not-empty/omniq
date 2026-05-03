@@ -26,6 +26,7 @@ This scenario has one tiny runner per SDK, all owned by the contract repo:
 - [python/run.py](C:/Users/disarli/Documents/ops/omniq/validation/scenario-26-consume-drain-true/python/run.py)
 - [node/run.ts](C:/Users/disarli/Documents/ops/omniq/validation/scenario-26-consume-drain-true/node/run.ts)
 - [go/run.go](C:/Users/disarli/Documents/ops/omniq/validation/scenario-26-consume-drain-true/go/run.go)
+- [php/run.php](/home/disarli/Downloads/omniq-core/validation/scenario-26-consume-drain-true/php/run.php)
 
 ## Suggested Commands
 
@@ -44,7 +45,13 @@ docker compose exec omniq-node sh -lc 'QUEUE=validation-s26-node npx tsx /worksp
 Go:
 
 ```bash
-docker compose exec omniq-go sh -lc "export PATH=/usr/bin:/bin; export GOTOOLCHAIN=auto; cd /workspace/omniq/validation/scenario-26-consume-drain-true/go && QUEUE=validation-s26-go /usr/bin/go run ."
+docker compose exec omniq-go sh -lc "export PATH=/usr/local/go/bin:/usr/bin:/bin; export GOTOOLCHAIN=auto; cd /workspace/omniq/validation/scenario-26-consume-drain-true/go && /usr/local/go/bin/go mod tidy >/dev/null 2>&1 && QUEUE=validation-s26-go /usr/local/go/bin/go run ."
+```
+
+PHP:
+
+```bash
+docker compose exec omniq-php sh -lc 'cd /workspace/omniq-php && QUEUE=validation-s26-php php /workspace/omniq/validation/scenario-26-consume-drain-true/php/run.php'
 ```
 
 ## Output Shape
