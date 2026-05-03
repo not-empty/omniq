@@ -3,12 +3,16 @@ import os
 import sys
 
 from omniq.client import OmniqClient
+
+REDIS_HOST = os.environ.get("REDIS_HOST", "omniq-redis")
+REDIS_PORT = 6379
+REDIS_MODE = os.environ.get("REDIS_MODE", "standalone")
 from omniq.helper import childs_anchor
 
 
 def main() -> int:
     key = os.environ.get("KEY", "validation-s11-python")
-    client = OmniqClient(host="omniq-redis", port=6379)
+    client = OmniqClient(host=REDIS_HOST, port=REDIS_PORT)
 
     try:
         client.childs_init(key=key, expected=3)

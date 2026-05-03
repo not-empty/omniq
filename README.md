@@ -31,7 +31,8 @@ You can run OmniQ using one of the existing implementations:
 
 - **Python:** https://github.com/not-empty/omniq-python  
 - **Go:** https://github.com/not-empty/omniq-go  
-- **Node.js:** https://github.com/not-empty/omniq-node  
+- **Node.js:** https://github.com/not-empty/omniq-node
+- **PHP:** https://github.com/not-empty/omniq-php  
 
 Or implement it yourself in any language capable of executing Lua scripts against the backing datastore (typically Redis).
 

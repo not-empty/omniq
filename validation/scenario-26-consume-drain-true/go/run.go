@@ -13,12 +13,12 @@ import (
 )
 
 type resultView struct {
-	SDK           string         `json:"sdk"`
-	Queue         string         `json:"queue"`
-	HandledJobIDs []string       `json:"handled_job_ids"`
-	FirstJobState string         `json:"first_job_state"`
-	SecondJobState string        `json:"second_job_state"`
-	Stats         map[string]int `json:"stats"`
+	SDK            string         `json:"sdk"`
+	Queue          string         `json:"queue"`
+	HandledJobIDs  []string       `json:"handled_job_ids"`
+	FirstJobState  string         `json:"first_job_state"`
+	SecondJobState string         `json:"second_job_state"`
+	Stats          map[string]int `json:"stats"`
 }
 
 func main() {
@@ -27,13 +27,13 @@ func main() {
 	firstJob := queue + "-job-001"
 	secondJob := queue + "-job-002"
 
-	client, err := omniq.NewClient(omniq.ClientOpts{Host: "omniq-redis", Port: 6379})
+	client, err := omniq.NewClient(omniq.ClientOpts{Host: getenv("REDIS_HOST", "omniq-redis"), Port: 6379})
 	if err != nil {
 		fail(err)
 	}
 
 	ctx := context.Background()
-	inspect := redis.NewClient(&redis.Options{Addr: "omniq-redis:6379"})
+	inspect := newRawRedis()
 	defer func() { _ = inspect.Close() }()
 
 	handled := []string{}
@@ -43,11 +43,11 @@ func main() {
 	mustPublish(client, omniq.PublishOpts{Queue: queue, JobID: secondJob, Payload: map[string]any{"kind": "drain-true", "slot": 2}, NowMsOverride: baseNowMs + 2})
 
 	err = client.Consume(omniq.ConsumeOpts{
-		Queue:          queue,
-		PollIntervalS:  0.02,
+		Queue:            queue,
+		PollIntervalS:    0.02,
 		PromoteIntervalS: 10.0,
-		ReapIntervalS:  10.0,
-		Drain:          true,
+		ReapIntervalS:    10.0,
+		Drain:            true,
 		Handler: func(job omniq.JobCtx) {
 			handled = append(handled, job.JobID)
 			if job.JobID == firstJob && !sigSent {
@@ -92,7 +92,7 @@ func mustPublish(client *omniq.Client, opts omniq.PublishOpts) {
 	}
 }
 
-func hgetString(r *redis.Client, ctx context.Context, key, field string) string {
+func hgetString(r redis.UniversalClient, ctx context.Context, key, field string) string {
 	v, err := r.HGet(ctx, key, field).Result()
 	if err != nil {
 		return ""
@@ -100,7 +100,7 @@ func hgetString(r *redis.Client, ctx context.Context, key, field string) string 
 	return v
 }
 
-func hgetInt(r *redis.Client, ctx context.Context, key, field string) int {
+func hgetInt(r redis.UniversalClient, ctx context.Context, key, field string) int {
 	v, err := r.HGet(ctx, key, field).Int()
 	if err != nil {
 		return 0
@@ -113,6 +113,19 @@ func getenv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+func newRawRedis() redis.UniversalClient {
+	if getenv("REDIS_MODE", "standalone") == "cluster" {
+		return redis.NewClusterClient(&redis.ClusterOptions{
+			Addrs: []string{getenv("REDIS_HOST", "omniq-redis") + ":6379"},
+		})
+	}
+
+	return redis.NewUniversalClient(&redis.UniversalOptions{
+		Addrs: []string{getenv("REDIS_HOST", "omniq-redis") + ":6379"},
+		DB:    0,
+	})
 }
 
 func fail(err error) {

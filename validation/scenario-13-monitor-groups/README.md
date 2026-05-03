@@ -31,6 +31,7 @@ This scenario has one tiny runner per SDK, all owned by the contract repo:
 - [python/run.py](/Users/disarli/Documents/ops/omniq/validation/scenario-13-monitor-groups/python/run.py)
 - [node/run.ts](/Users/disarli/Documents/ops/omniq/validation/scenario-13-monitor-groups/node/run.ts)
 - [go/run.go](/Users/disarli/Documents/ops/omniq/validation/scenario-13-monitor-groups/go/run.go)
+- [php/run.php](/home/disarli/Downloads/omniq-core/validation/scenario-13-monitor-groups/php/run.php)
 
 Each runner seeds:
 
@@ -61,6 +62,12 @@ Go:
 
 ```bash
 docker compose exec omniq-go sh -lc "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; export GOTOOLCHAIN=auto; cd /workspace/omniq/validation/scenario-13-monitor-groups/go && go mod tidy && QUEUE=validation-s13-go go run ."
+```
+
+PHP:
+
+```bash
+docker compose exec omniq-php sh -lc 'cd /workspace/omniq-php && QUEUE=validation-s13-php php /workspace/omniq/validation/scenario-13-monitor-groups/php/run.php'
 ```
 
 ## Output Shape

@@ -31,7 +31,7 @@ func main() {
 	baseNowMs := int64(1775400000000)
 	gids := []string{"alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta"}
 
-	client, err := omniq.NewClient(omniq.ClientOpts{Host: "omniq-redis", Port: 6379})
+	client, err := omniq.NewClient(omniq.ClientOpts{Host: getenv("REDIS_HOST", "omniq-redis"), Port: 6379})
 	if err != nil {
 		fail(err)
 	}

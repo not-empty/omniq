@@ -6,6 +6,16 @@ import redis
 
 from omniq import OmniqClient
 
+REDIS_HOST = os.environ.get("REDIS_HOST", "omniq-redis")
+REDIS_PORT = 6379
+REDIS_MODE = os.environ.get("REDIS_MODE", "standalone")
+
+
+def new_seed() -> redis.Redis:
+    if REDIS_MODE == "cluster":
+        return redis.RedisCluster(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
+    return redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
+
 
 def reserve_job(client: OmniqClient, queue: str, now_ms: int):
     res = client.reserve(queue=queue, now_ms_override=now_ms)
@@ -20,7 +30,7 @@ def decode_str(value):
     return str(value or "")
 
 
-def script_flush(seed: redis.Redis) -> None:
+def script_flush(seed) -> None:
     seed.execute_command("SCRIPT", "FLUSH")
 
 
@@ -31,8 +41,8 @@ def main() -> int:
     publish_job = f"{queue}-job-001"
     delayed_job = f"{queue}-delayed-001"
 
-    client = OmniqClient(host="omniq-redis", port=6379)
-    seed = redis.Redis(host="omniq-redis", port=6379, decode_responses=True)
+    client = OmniqClient(host=REDIS_HOST, port=REDIS_PORT)
+    seed = new_seed()
 
     try:
         script_flush(seed)

@@ -9,6 +9,16 @@ import redis
 
 from omniq import OmniqClient
 
+REDIS_HOST = os.environ.get("REDIS_HOST", "omniq-redis")
+REDIS_PORT = 6379
+REDIS_MODE = os.environ.get("REDIS_MODE", "standalone")
+
+
+def new_seed() -> redis.Redis:
+    if REDIS_MODE == "cluster":
+        return redis.RedisCluster(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
+    return redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
+
 
 def main() -> int:
     queue = os.environ.get("QUEUE", "validation-s26-python")
@@ -16,8 +26,8 @@ def main() -> int:
     first_job = f"{queue}-job-001"
     second_job = f"{queue}-job-002"
 
-    client = OmniqClient(host="omniq-redis", port=6379)
-    inspect = redis.Redis(host="omniq-redis", port=6379, decode_responses=True)
+    client = OmniqClient(host=REDIS_HOST, port=REDIS_PORT)
+    inspect = new_seed()
 
     handled_job_ids: list[str] = []
     started = threading.Event()

@@ -4,6 +4,10 @@ import sys
 
 from omniq import OmniqClient
 
+REDIS_HOST = os.environ.get("REDIS_HOST", "omniq-redis")
+REDIS_PORT = 6379
+REDIS_MODE = os.environ.get("REDIS_MODE", "standalone")
+
 
 def reserve_job(client: OmniqClient, queue: str, now_ms: int):
     res = client.reserve(queue=queue, now_ms_override=now_ms)
@@ -16,7 +20,7 @@ def main() -> int:
     queue = os.environ.get("QUEUE", "validation-s19-python")
     base_now_ms = 1775360000000
     due_ms = base_now_ms + 5000
-    client = OmniqClient(host="omniq-redis", port=6379)
+    client = OmniqClient(host=REDIS_HOST, port=REDIS_PORT)
 
     try:
         client.publish(queue=queue, job_id=f"{queue}-alpha-job-001", payload={"kind": "grouped-promote-delayed", "slot": "alpha-1"}, gid="alpha", group_limit=1, due_ms=due_ms, now_ms_override=base_now_ms + 1)

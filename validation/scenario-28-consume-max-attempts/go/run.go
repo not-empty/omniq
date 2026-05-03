@@ -31,13 +31,13 @@ func main() {
 	jobID := queue + "-job-001"
 	baseNowMs := int64(1775440000000)
 
-	client, err := omniq.NewClient(omniq.ClientOpts{Host: "omniq-redis", Port: 6379})
+	client, err := omniq.NewClient(omniq.ClientOpts{Host: getenv("REDIS_HOST", "omniq-redis"), Port: 6379})
 	if err != nil {
 		fail(err)
 	}
 
 	ctx := context.Background()
-	inspect := redis.NewClient(&redis.Options{Addr: "omniq-redis:6379"})
+	inspect := newRawRedis()
 	defer func() { _ = inspect.Close() }()
 
 	seen := []seenItem{}
@@ -106,7 +106,7 @@ func main() {
 	fmt.Println(string(b))
 }
 
-func hgetString(r *redis.Client, ctx context.Context, key, field string) string {
+func hgetString(r redis.UniversalClient, ctx context.Context, key, field string) string {
 	v, err := r.HGet(ctx, key, field).Result()
 	if err != nil {
 		return ""
@@ -119,6 +119,19 @@ func getenv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+func newRawRedis() redis.UniversalClient {
+	if getenv("REDIS_MODE", "standalone") == "cluster" {
+		return redis.NewClusterClient(&redis.ClusterOptions{
+			Addrs: []string{getenv("REDIS_HOST", "omniq-redis") + ":6379"},
+		})
+	}
+
+	return redis.NewUniversalClient(&redis.UniversalOptions{
+		Addrs: []string{getenv("REDIS_HOST", "omniq-redis") + ":6379"},
+		DB:    0,
+	})
 }
 
 func fail(err error) {

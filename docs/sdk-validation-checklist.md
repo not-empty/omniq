@@ -5,6 +5,7 @@ This document is the shared validation checklist for the OmniQ SDKs:
 - Python
 - Node
 - Go
+- PHP
 
 The goal is to verify that all SDKs:
 
@@ -32,6 +33,7 @@ Main services:
 - `omniq-python`
 - `omniq-node`
 - `omniq-go`
+- `omniq-php`
 
 Redis hostname inside containers:
 
@@ -44,6 +46,7 @@ Useful shell entrypoints:
 docker compose exec omniq-python sh
 docker compose exec omniq-node sh
 docker compose exec omniq-go sh
+docker compose exec omniq-php sh
 ```
 
 ---
@@ -52,7 +55,7 @@ docker compose exec omniq-go sh
 
 For every scenario below:
 
-1. Run the same logical flow in Python, Node, and Go.
+1. Run the same logical flow in Python, Node, Go, and PHP.
 2. Validate both SDK return values and Redis state.
 3. Compare the result against the contract in [omni-contract.md](/Users/disarli/Documents/ops/omniq/docs/omni-contract.md).
 4. Compare monitoring expectations against [omniq_redis_map.md](/Users/disarli/Documents/ops/omniq/docs/omniq_redis_map.md).
@@ -236,6 +239,67 @@ Expected:
 
 ---
 
+## Scenario 29: Queue Name Validation
+
+Validate:
+
+- queue names reject invalid characters
+- queue names reject manual hash tags
+- queue names reject leading or trailing whitespace
+- monitor APIs reject invalid queue names the same way as publish APIs
+
+Expected:
+
+- invalid names are rejected consistently across SDKs
+- valid names still publish normally
+
+---
+
+## Scenario 30: Scan Queues Discovery Rules
+
+Validate:
+
+- `scan_queues()` discovers queues from `*:stats`
+- paused-only queues with no stats are not discovered
+- malformed `*:stats` keys are ignored
+- `stats_many()` without explicit queues follows the same discovery rules
+
+Expected:
+
+- only valid queue names backed by stats are discovered
+- invalid sparse keys do not leak into queue discovery
+
+---
+
+## Scenario 31: Multi-Queue NOSCRIPT Recovery
+
+Validate:
+
+- `NOSCRIPT` recovery works across more than one queue
+- publish, reserve, heartbeat, and ack continue to work after repeated script flushes
+- queue discovery still sees all touched queues after reloads
+
+Expected:
+
+- both queues complete successfully
+- script cache misses are recovered automatically on every backend
+
+---
+
+## Scenario 32: Transport Backend Smoke
+
+Validate:
+
+- the same SDK transport path works on standalone Redis and Redis Cluster
+- publish, reserve, and queue discovery all succeed under the selected backend
+
+Expected:
+
+- standalone runs succeed through fallback-capable clients
+- cluster runs succeed through cluster-capable clients
+
+---
+
 ## Scenario 8: Pause And Resume
 
 Validate:
@@ -331,14 +395,14 @@ Expected:
 
 Validate:
 
-- monitor lists queues from `omniq:queues`
+- monitor discovers queues by scanning `*:stats`
 - queue names are normalized consistently
 - stats fields match actual Redis data
 - paused status is derived correctly
 
 SDK methods:
 
-- `list_queues`
+- `scan_queues`
 - `stats`
 - `stats_many`
 

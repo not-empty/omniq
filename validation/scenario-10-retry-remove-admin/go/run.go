@@ -42,7 +42,7 @@ func main() {
 	delayedRemoveJob := queue + "-delayed-remove-job-001"
 
 	client, err := omniq.NewClient(omniq.ClientOpts{
-		Host: "omniq-redis",
+		Host: getenv("REDIS_HOST", "omniq-redis"),
 		Port: 6379,
 	})
 	if err != nil {

@@ -5,6 +5,10 @@ from dataclasses import asdict
 
 from omniq import OmniqClient, QueueMonitor
 
+REDIS_HOST = os.environ.get("REDIS_HOST", "omniq-redis")
+REDIS_PORT = 6379
+REDIS_MODE = os.environ.get("REDIS_MODE", "standalone")
+
 
 def reserve_job(client: OmniqClient, queue: str, now_ms: int):
     res = client.reserve(queue=queue, now_ms_override=now_ms)
@@ -19,7 +23,7 @@ def main() -> int:
     queue_b = f"{prefix}-mixed"
     base_now_ms = 1775290000000
 
-    client = OmniqClient(host="omniq-redis", port=6379)
+    client = OmniqClient(host=REDIS_HOST, port=REDIS_PORT)
     monitor = QueueMonitor(client)
 
     try:
@@ -39,7 +43,7 @@ def main() -> int:
         client.ack_success(queue=queue_b, job_id=completed_res.job_id, lease_token=completed_res.lease_token, now_ms_override=base_now_ms + 150)
         _ = active_res
 
-        list_queues = monitor.list_queues()
+        list_queues = monitor.scan_queues()
         queues_found = sorted([q for q in list_queues if q in {queue_a, queue_b}])
         stats_a = asdict(monitor.stats(queue_a))
         stats_b = asdict(monitor.stats(queue_b))

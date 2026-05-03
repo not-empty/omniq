@@ -6,6 +6,7 @@ This document is the practical release checklist for the OmniQ ecosystem:
 - `omniq-python`
 - `omniq-node`
 - `omniq-go`
+- `omniq-php`
 
 It is intentionally execution-oriented.
 Do not treat release as a documentation-only task.
@@ -20,6 +21,7 @@ Recommended order:
 2. `omniq-python`
 3. `omniq-node`
 4. `omniq-go`
+5. `omniq-php`
 
 This order is safest when SDKs depend on a new contract shape from core.
 
@@ -66,8 +68,12 @@ Execution checks:
 - run at minimum:
   - scenario `01` basic publish/reserve
   - scenario `28` consume max attempts
+  - scenario `29` queue name validation
+  - scenario `30` scan queues discovery rules
+  - scenario `31` multi-queue `NOSCRIPT` recovery
+  - scenario `32` transport backend smoke
 - preferably run the full suite:
-  - `bash ./validation/run_suite.sh`
+  - `VALIDATION_BACKENDS='standalone cluster' bash ./validation/run_suite.sh`
 - confirm all scenarios pass
 
 Publishing steps:
@@ -172,6 +178,30 @@ There is no separate package-store publish step like PyPI or npm.
 
 ---
 
+## PHP
+
+Repository checks:
+
+- confirm metadata in `composer.json`
+- confirm vendored Lua files are current
+- confirm README matches the released API
+
+Execution checks:
+
+- run PHP syntax validation
+- run Composer install/update as needed
+- run a small smoke or contract validation flow if practical
+- confirm `ext-redis` and `ext-pcntl` expectations are documented
+
+Publish steps:
+
+- push the branch
+- create and push the release tag
+- publish to Packagist or the intended Composer distribution path
+- verify install through Composer works
+
+---
+
 ## Cross-Repo Consistency
 
 Before final sign-off:
@@ -184,6 +214,7 @@ Before final sign-off:
 - confirm contract-expansion fields are aligned across SDKs
 - confirm examples for the same feature exist where expected
 - confirm validation scenarios reflect the released contract
+- confirm the full validation suite passes on both standalone Redis and Redis Cluster
 
 ---
 
@@ -197,6 +228,7 @@ The release is not complete until you have:
 - build output for Python
 - build and typecheck output for Node
 - build output for Go
+- release/install confirmation for PHP
 - confirmation that published artifacts install successfully
 
 ---

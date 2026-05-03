@@ -6,7 +6,7 @@ Validate queue-level monitoring views.
 
 ## Validate
 
-- queue discovery via `omniq:queues`
+- queue discovery via queue-local `*:stats` scanning
 - queue name normalization
 - stats counters
 - paused derivation
@@ -23,6 +23,7 @@ This scenario has one tiny runner per SDK, all owned by the contract repo:
 - [python/run.py](/Users/disarli/Documents/ops/omniq/validation/scenario-12-monitor-queue-stats/python/run.py)
 - [node/run.ts](/Users/disarli/Documents/ops/omniq/validation/scenario-12-monitor-queue-stats/node/run.ts)
 - [go/run.go](/Users/disarli/Documents/ops/omniq/validation/scenario-12-monitor-queue-stats/go/run.go)
+- [php/run.php](/home/disarli/Downloads/omniq-core/validation/scenario-12-monitor-queue-stats/php/run.php)
 
 Each runner seeds two queues:
 
@@ -31,7 +32,7 @@ Each runner seeds two queues:
 
 Then it validates:
 
-- `list_queues`
+- `scan_queues`
 - `stats(queue)`
 - `stats_many([queueA, queueB])`
 
@@ -53,6 +54,12 @@ Go:
 
 ```bash
 docker compose exec omniq-go sh -lc "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; export GOTOOLCHAIN=auto; cd /workspace/omniq/validation/scenario-12-monitor-queue-stats/go && go mod tidy && PREFIX=validation-s12-go go run ."
+```
+
+PHP:
+
+```bash
+docker compose exec omniq-php sh -lc 'cd /workspace/omniq-php && PREFIX=validation-s12-php php /workspace/omniq/validation/scenario-12-monitor-queue-stats/php/run.php'
 ```
 
 ## Output Shape

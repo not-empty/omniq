@@ -26,6 +26,7 @@ This scenario has one tiny runner per SDK, all owned by the contract repo:
 - [python/run.py](/Users/disarli/Documents/ops/omniq/validation/scenario-17-grouped-ack-fail/python/run.py)
 - [node/run.ts](/Users/disarli/Documents/ops/omniq/validation/scenario-17-grouped-ack-fail/node/run.ts)
 - [go/run.go](/Users/disarli/Documents/ops/omniq/validation/scenario-17-grouped-ack-fail/go/run.go)
+- [php/run.php](/home/disarli/Downloads/omniq-core/validation/scenario-17-grouped-ack-fail/php/run.php)
 
 ## Suggested Commands
 
@@ -45,6 +46,12 @@ Go:
 
 ```bash
 docker compose exec omniq-go sh -lc "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; export GOTOOLCHAIN=auto; cd /workspace/omniq/validation/scenario-17-grouped-ack-fail/go && go mod tidy && QUEUE=validation-s17-go go run ."
+```
+
+PHP:
+
+```bash
+docker compose exec omniq-php sh -lc 'cd /workspace/omniq-php && QUEUE=validation-s17-php php /workspace/omniq/validation/scenario-17-grouped-ack-fail/php/run.php'
 ```
 
 ## Output Shape

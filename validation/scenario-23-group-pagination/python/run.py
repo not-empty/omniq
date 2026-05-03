@@ -5,11 +5,15 @@ from dataclasses import asdict
 
 from omniq import OmniqClient, QueueMonitor
 
+REDIS_HOST = os.environ.get("REDIS_HOST", "omniq-redis")
+REDIS_PORT = 6379
+REDIS_MODE = os.environ.get("REDIS_MODE", "standalone")
+
 
 def main() -> int:
     queue = os.environ.get("QUEUE", "validation-s23-python")
     base_now_ms = 1775400000000
-    client = OmniqClient(host="omniq-redis", port=6379)
+    client = OmniqClient(host=REDIS_HOST, port=REDIS_PORT)
     monitor = QueueMonitor(client)
 
     gids = ["alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta"]

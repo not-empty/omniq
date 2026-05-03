@@ -1,5 +1,9 @@
 import { OmniqClient } from "/workspace/omniq-node/src/index.ts";
 
+const REDIS_HOST = process.env.REDIS_HOST ?? "omniq-redis";
+const REDIS_PORT = 6379;
+const REDIS_MODE = process.env.REDIS_MODE ?? "standalone";
+
 async function main() {
   const queue = process.env.QUEUE ?? "validation-s06-node";
   const jobId = process.env.JOB_ID ?? `${queue}-job-001`;
@@ -7,7 +11,8 @@ async function main() {
   const dueMs = baseNowMs + 5000;
 
   const client = await OmniqClient.create({
-    redis_url: "redis://omniq-redis:6379/0",
+    host: REDIS_HOST,
+    port: REDIS_PORT,
     scriptsDir: "/workspace/omniq-node/src/core/scripts",
   });
 
